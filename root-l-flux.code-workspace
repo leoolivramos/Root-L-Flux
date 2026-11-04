@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "name": "Root L Flux",
+      "path": "."
+    },
+    {
+      "name": "Root L Knowledge Base (OKF v0.2)",
+      "path": "../../knowledge"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true
+    }
+  }
+}

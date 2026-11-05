@@ -34,6 +34,14 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Violação de unicidade ou concorrência detectada (chave de idempotência já processada)");
+        problem.setTitle("Evento Duplicado Detectado");
+        problem.setType(URI.create("urn:root-l-flux:erro:duplicado"));
+        return problem;
+    }
+
     @ExceptionHandler(FlowNotFoundException.class)
     public ProblemDetail handleFlowNotFound(FlowNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());

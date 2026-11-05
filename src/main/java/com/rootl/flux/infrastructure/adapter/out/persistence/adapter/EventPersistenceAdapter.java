@@ -1,12 +1,14 @@
 package com.rootl.flux.infrastructure.adapter.out.persistence.adapter;
 
 import com.rootl.flux.application.port.out.EventRepositoryPort;
+import com.rootl.flux.domain.exception.DuplicateEventException;
 import com.rootl.flux.domain.model.Event;
 import com.rootl.flux.domain.model.EventId;
 import com.rootl.flux.domain.model.EventMetadata;
 import com.rootl.flux.domain.model.ExecutionStatus;
 import com.rootl.flux.infrastructure.adapter.out.persistence.entity.EventJpaEntity;
 import com.rootl.flux.infrastructure.adapter.out.persistence.repository.SpringDataEventRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -22,9 +24,16 @@ public class EventPersistenceAdapter implements EventRepositoryPort {
 
     @Override
     public Event save(Event event) {
-        EventJpaEntity entity = toEntity(event);
-        EventJpaEntity saved = repository.save(entity);
-        return toDomain(saved);
+        try {
+            EventJpaEntity entity = toEntity(event);
+            EventJpaEntity saved = repository.saveAndFlush(entity);
+            return toDomain(saved);
+        } catch (DataIntegrityViolationException ex) {
+            if (event.getMetadata().idempotencyKey() != null) {
+                throw new DuplicateEventException(event.getMetadata().idempotencyKey());
+            }
+            throw ex;
+        }
     }
 
     @Override

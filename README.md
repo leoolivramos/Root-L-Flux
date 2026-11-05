@@ -118,6 +118,33 @@ curl -X POST http://localhost:8080/api/v1/dlq/<ID_DA_MENSAGEM>/reprocessar
 
 ---
 
+## Testes de Carga e Estresse
+
+O projeto já vem pronto para ser estressado ao limite, tanto via JUnit automatizado quanto via script CLI Python com métricas detalhadas (RPS, latência P50, P90, P95, P99).
+
+### 1. Rodar a suíte pesada em Java (JUnit 5)
+Testa ingestão massiva de 250 eventos simultâneos, condição extrema de corrida de idempotência (40 threads disparando no mesmo milissegundo) e orquestração de 30 workflows concorrentes:
+
+```bash
+.\mvnw.cmd test -Dtest=HeavyLoadStressTest
+```
+
+### 2. Rodar o teste de carga interativo em Python
+Dispara rajadas configuráveis contra a API em execução, sem precisar instalar nenhuma biblioteca externa:
+
+```bash
+# Alta vazão: 1.000 requisições com 50 threads concorrentes
+python tests/stress_test.py --requests 1000 --concurrency 50 --mode ingest
+
+# Corrida de Idempotência: centenas de threads colidindo na mesma chave
+python tests/stress_test.py --requests 500 --concurrency 50 --mode idempotency
+
+# Sobrecarga para DLQ: injeção de poison pills para validação de retries e desvio
+python tests/stress_test.py --requests 100 --concurrency 10 --mode dlq
+```
+
+---
+
 ## Estrutura do Código
 
 O projeto segue Arquitetura Hexagonal (*Ports & Adapters*) bem dividida:

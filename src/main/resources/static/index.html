@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root L Flux — Console de Orquestração</title>
+</head>
+<body>
+
+<div>
+  <header>
+    <div >
+      <h1>Root L Flux <span>Orquestrador v0.1</span></h1>
+    </div>
+    <div>
+      <a href="/swagger-ui.html" target="_blank">OpenAPI / Swagger</a>
+      <button onclick="carregarDados()" >Atualizar</button>
+      <div>
+        <span></span> Online (Porta 8080)
+      </div>
+    </div>
+  </header>
+
+  <!-- Metrics -->
+  <div>
+    <div>
+      <span>Workflows Cadastrados</span>
+      <span id="count-flows">0</span>
+    </div>
+    <div>
+      <span>Mensagens na DLQ</span>
+      <span id="count-dlq">0</span>
+    </div>
+    <div>
+      <span>Kafka Broker</span>
+      <span>localhost:9092</span>
+    </div>
+    <div>
+      <span>Tópico Principal</span>
+      <span>root-l-flux.events.raw</span>
+    </div>
+  </div>
+
+  <div>
+    <button onclick="switchTab('tab-execucoes')">Execuções de Workflows</button>
+    <button onclick="switchTab('tab-eventos')">Disparar Evento</button>
+    <button onclick="switchTab('tab-fluxos')">Definições de Fluxos</button>
+    <button onclick="switchTab('tab-dlq')">Dead Letter Queue (DLQ)</button>
+  </div>
+
+  <div id="tab-execucoes" data-tab>
+    <div>
+      <div>
+        <h2>Execuções e Etapas (Workflows)</h2>
+        <span>Dispare um evento para visualizar as etapas aqui</span>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID da Execução</th>
+              <th>Workflow (FlowId)</th>
+              <th>Status</th>
+              <th>Início</th>
+              <th>Etapas Concluídas</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="lista-execucoes">
+            <tr><td colspan="6">Nenhuma execução recente carregada. Dispare um evento para iniciar!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Disparar Evento -->
+  <div id="tab-eventos" data-tab hidden>
+    <div>
+      <div>
+        <h2>Enviar Evento para o Fluxo</h2>
+        <div>
+          <button onclick="usarTemplate('normal')">Template: Pedido Normal</button>
+          <button onclick="usarTemplate('falha')">Template: Simular Falha DLQ</button>
+        </div>
+      </div>
+      <form id="form-evento" onsubmit="enviarEvento(event)">
+        <div>
+          <div>
+            <label>Tipo do Evento (Type)</label>
+            <input type="text" id="ev-type" value="pedido.criado" required>
+          </div>
+          <div>
+            <label>Origem (Source)</label>
+            <input type="text" id="ev-source" value="console-web" required>
+          </div>
+          <div>
+            <label>Chave de Idempotência (Opcional)</label>
+            <input type="text" id="ev-idempotency" placeholder="Gerado automaticamente se vazio">
+          </div>
+        </div>
+        <div>
+          <label>Carga Útil de Negócio (Payload JSON)</label>
+          <textarea id="ev-payload">{"pedidoId": "PED-101", "valor": 299.90, "cliente": "Leonardo Ramos"}</textarea>
+        </div>
+        <button type="submit">Ingerir e Publicar Evento</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tab: Fluxos Cadastrados -->
+  <div id="tab-fluxos" data-tab hidden>
+    <div>
+      <div>
+        <h2>Workflows Cadastrados no Sistema</h2>
+        <button onclick="criarWorkflowExemplo()">+ Criar Workflow Padrão</button>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th>Identificador (flowId)</th>
+              <th>Nome</th>
+              <th>Gatilho (triggerEventType)</th>
+              <th>Etapas Configuradas</th>
+            </tr>
+          </thead>
+          <tbody id="lista-fluxos">
+            <tr><td colspan="4">Carregando fluxos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: DLQ -->
+  <div id="tab-dlq" data-tab hidden>
+    <div>
+      <div>
+        <h2>Mensagens na Dead Letter Queue (DLQ)</h2>
+        <div>
+          <button onclick="limparDlq()">Limpar Buffer</button>
+        </div>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th>Chave</th>
+              <th>Tópico Original</th>
+              <th>Motivo da Falha</th>
+              <th>Horário</th>
+              <th>Payload</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="lista-dlq">
+            <tr><td colspan="6">Nenhuma mensagem com falha na DLQ. Tudo rodando liso!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="mensagem" role="status" aria-live="polite"></div>
+
+<script>
+  // Alternar Abas
+  function switchTab(tabId) {
+    document.querySelectorAll('[data-tab]').forEach(content => {
+      content.hidden = content.id !== tabId;
+    });
+    if (tabId === 'tab-dlq') carregarDlq();
+    if (tabId === 'tab-fluxos') carregarFluxos();
+  }
+
+  // Mensagens de status
+  function showToast(msg) {
+    document.getElementById('mensagem').textContent = msg;
+  }
+
+  // Templates Rápidos
+  function usarTemplate(tipo) {
+    if (tipo === 'normal') {
+      document.getElementById('ev-type').value = 'pedido.criado';
+      document.getElementById('ev-idempotency').value = 'idem-' + Date.now();
+      document.getElementById('ev-payload').value = JSON.stringify({
+        pedidoId: "PED-" + Math.floor(Math.random() * 9000 + 1000),
+        valor: (Math.random() * 500).toFixed(2),
+        cliente: "Maria Silva"
+      }, null, 2);
+    } else if (tipo === 'falha') {
+      document.getElementById('ev-type').value = 'pedido.critico';
+      document.getElementById('ev-idempotency').value = 'idem-falha-' + Date.now();
+      document.getElementById('ev-payload').value = JSON.stringify({
+        pedidoId: "ERR-" + Math.floor(Math.random() * 9000 + 1000),
+        forcar_dlq: true,
+        motivo: "Simulação de poison pill para envio à DLQ"
+      }, null, 2);
+    }
+  }
+
+  // Ingerir Evento
+  async function enviarEvento(e) {
+    e.preventDefault();
+    const type = document.getElementById('ev-type').value;
+    const source = document.getElementById('ev-source').value;
+    const idempotencyKey = document.getElementById('ev-idempotency').value || ('idem-' + Date.now());
+    const payload = document.getElementById('ev-payload').value;
+
+    try {
+      const resp = await fetch('/api/v1/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, source, idempotencyKey, payload })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        showToast(`Evento ingerido e publicado! ID: ${data.id}`);
+        setTimeout(carregarDados, 800);
+      } else {
+        const err = await resp.json();
+        showToast(`Erro: ${err.detail || err.title || 'Falha ao ingerir evento'}`);
+      }
+    } catch (err) {
+      showToast('Erro de conexão com o servidor');
+    }
+  }
+
+  // Carregar Workflows Cadastrados
+  async function carregarFluxos() {
+    try {
+      const resp = await fetch('/api/v1/flows');
+      if (resp.ok) {
+        const fluxos = await resp.json();
+        document.getElementById('count-flows').textContent = fluxos.length;
+        const tbody = document.getElementById('lista-fluxos');
+        if (fluxos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">Nenhum fluxo cadastrado. Clique no botão acima para criar o fluxo padrão!</td></tr>';
+          return;
+        }
+        tbody.innerHTML = fluxos.map(f => `
+          <tr>
+            <td>${f.flowId}</td>
+            <td><strong>${f.name}</strong></td>
+            <td>${f.triggerEventType}</td>
+            <td>
+              <div>
+                ${f.steps.map(s => `
+                  <div>
+                    <span>${s.orderIndex}. ${s.name} (${s.actionType})</span>
+                    <span>Retries: ${s.maxAttempts}x</span>
+                  </div>
+                `).join('')}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Criar Workflow Exemplo
+  async function criarWorkflowExemplo() {
+    const flowPayload = {
+      flowId: "fluxo-processamento-pedidos",
+      name: "Fluxo Completo de Processamento de Pedidos",
+      triggerEventType: "pedido.criado",
+      steps: [
+        { stepId: "validar-estoque", name: "Validação de Estoque", orderIndex: 1, actionType: "VALIDACAO", maxAttempts: 3 },
+        { stepId: "processar-pagamento", name: "Processar Pagamento", orderIndex: 2, actionType: "INTEGRACAO", maxAttempts: 3 },
+        { stepId: "emitir-nota", name: "Emitir Nota Fiscal", orderIndex: 3, actionType: "INTEGRACAO", maxAttempts: 2 }
+      ]
+    };
+
+    const resp = await fetch('/api/v1/flows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(flowPayload)
+    });
+    if (resp.ok) {
+      showToast('Workflow padrão cadastrado com sucesso!');
+      carregarFluxos();
+    } else {
+      showToast('Fluxo já cadastrado ou erro ao criar.');
+    }
+  }
+
+  // Carregar DLQ
+  async function carregarDlq() {
+    try {
+      const resp = await fetch('/api/v1/dlq');
+      if (resp.ok) {
+        const itens = await resp.json();
+        document.getElementById('count-dlq').textContent = itens.length;
+        const tbody = document.getElementById('lista-dlq');
+        if (itens.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">Nenhuma mensagem na DLQ. As filas estão saudáveis!</td></tr>';
+          return;
+        }
+        tbody.innerHTML = itens.map(item => `
+          <tr>
+            <td>${item.key || 'sem chave'}</td>
+            <td>${item.originalTopic}</td>
+            <td>${item.exceptionMessage}</td>
+            <td>${new Date(item.receivedAt).toLocaleTimeString()}</td>
+            <td><pre>${item.payload}</pre></td>
+            <td>
+              <button onclick="reprocessarDlq('${item.id}')">Reenviar</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Reprocessar Mensagem da DLQ
+  async function reprocessarDlq(id) {
+    const resp = await fetch(`/api/v1/dlq/${id}/reprocessar`, { method: 'POST' });
+    if (resp.ok) {
+      showToast('Mensagem reenviada ao tópico principal para reprocessamento!');
+      setTimeout(carregarDlq, 1000);
+    }
+  }
+
+  // Limpar DLQ
+  async function limparDlq() {
+    const resp = await fetch('/api/v1/dlq', { method: 'DELETE' });
+    if (resp.ok) {
+      showToast('Buffer da DLQ limpo');
+      carregarDlq();
+    }
+  }
+
+  // Replay de Execução
+  async function replayExecucao(id) {
+    const resp = await fetch(`/api/v1/executions/${id}/replay`, { method: 'POST' });
+    if (resp.ok) {
+      showToast('Flow Replay executado com sucesso!');
+      carregarDados();
+    }
+  }
+
+  // Carregar todos os dados
+  function carregarDados() {
+    carregarFluxos();
+    carregarDlq();
+  }
+
+  // Inicialização
+  window.addEventListener('DOMContentLoaded', () => {
+    switchTab('tab-execucoes');
+    carregarDados();
+  });
+</script>
+</body>
+</html>

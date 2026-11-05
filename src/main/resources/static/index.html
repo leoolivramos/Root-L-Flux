@@ -4,6 +4,118 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Root L Flux — Console de Orquestração</title>
+  <style>
+    body {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+    }
+
+    header,
+    header > div,
+    form > div,
+    form > div > div,
+    [data-tab] > div > div,
+    [data-tab] > div > div > div {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    header,
+    [data-tab] > div > div {
+      justify-content: space-between;
+    }
+
+    header,
+    body > div > div,
+    form,
+    table {
+      margin-bottom: 20px;
+    }
+
+    button,
+    input,
+    textarea {
+      padding: 6px;
+      font: inherit;
+    }
+
+    form,
+    table {
+      width: 100%;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    form > div {
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    form > div > div {
+      flex: 1 1 220px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    textarea {
+      min-height: 100px;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    [data-tab] > div {
+      border: 1px solid #ccc;
+      padding: 16px;
+    }
+
+    [data-tab] > div > div {
+      flex-wrap: wrap;
+    }
+
+    [data-tab] > div > div > div {
+      flex-wrap: wrap;
+    }
+
+    #mensagem {
+      margin-top: 12px;
+      min-height: 1.4em;
+    }
+
+    @media (max-width: 700px) {
+      header,
+      header > div,
+      [data-tab] > div > div {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
 </head>
 <body>
 

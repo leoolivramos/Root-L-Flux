@@ -13,12 +13,15 @@
 ## Marco 2 — Implementação Core
 - [x] Configuração de build Maven 3.9 com Spring Boot 3.4
 - [x] Implementação do núcleo de Domínio (`Event`, `EventMetadata`, `FlowExecution`, `ExecutionStatus`)
-- [x] Implementação da camada de Aplicação (`IngestEventUseCase`, `EventIngestionService`, `FlowExecutionOrchestrator`)
-- [x] Implementação de Adaptadores de Persistência JPA (`EventPersistenceAdapter`, `FlowExecutionPersistenceAdapter`)
-- [x] Implementação de Adaptadores REST (`EventController`, `FlowExecutionController`, `GlobalExceptionHandler`) com OpenAPI 3.0
-- [x] Implementação de testes unitários e de integração em `src/test/` e testes estruturais em `tests/`
-- [ ] Implementação de integração nativa do produtor e consumidor Apache Kafka
-- [ ] Mecanismo avançado de orquestração de etapas encadeadas com tolerância a falhas e DLQ
+- [x] Implementação do motor de workflows (`FlowDefinition`, `StepDefinition`, `StepExecution`, `RetryPolicy`)
+- [x] Camada de Aplicação (`IngestEventUseCase`, `ManageFlowDefinitionUseCase`, `ExecuteFlowUseCase`, `ReplayExecutionUseCase`)
+- [x] Orquestração dirigida a eventos (ingestão dispara automaticamente fluxos vinculados)
+- [x] Mecanismo de recuperação e reprocessamento (*Flow Replay*)
+- [x] Adaptadores de Persistência JPA (`Event`, `FlowDefinition`, `FlowExecution`, `StepExecution`)
+- [x] Adaptadores REST completos (`EventController`, `FlowDefinitionController`, `FlowExecutionController`) com OpenAPI 3.0
+- [x] Suíte abrangente de 16 testes automatizados unitários, de integração e contratuais
+- [ ] Integração do produtor e consumidor de eventos com Apache Kafka
+- [ ] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries
 
 ## Marco 3 — Consolidação
 - [ ] Revisão técnica de qualidade e segurança (`technical-review`)

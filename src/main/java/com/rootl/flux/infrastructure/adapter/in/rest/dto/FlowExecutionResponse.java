@@ -4,6 +4,7 @@ import com.rootl.flux.domain.model.FlowExecution;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
+import java.util.List;
 
 public record FlowExecutionResponse(
         @Schema(description = "Identificador único da execução do fluxo", example = "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d")
@@ -25,9 +26,16 @@ public record FlowExecutionResponse(
         Instant completedAt,
 
         @Schema(description = "Mensagem de erro caso a execução tenha falhado")
-        String errorMessage
+        String errorMessage,
+
+        @Schema(description = "Lista detalhada de etapas executadas")
+        List<StepExecutionResponse> steps
 ) {
     public static FlowExecutionResponse fromDomain(FlowExecution execution) {
+        List<StepExecutionResponse> stepResponses = execution.getStepExecutions() != null
+                ? execution.getStepExecutions().stream().map(StepExecutionResponse::fromDomain).toList()
+                : List.of();
+
         return new FlowExecutionResponse(
                 execution.getId(),
                 execution.getFlowId(),
@@ -35,7 +43,8 @@ public record FlowExecutionResponse(
                 execution.getStatus().name(),
                 execution.getCreatedAt(),
                 execution.getCompletedAt(),
-                execution.getErrorMessage()
+                execution.getErrorMessage(),
+                stepResponses
         );
     }
 }

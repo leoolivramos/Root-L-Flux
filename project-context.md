@@ -108,8 +108,10 @@ Consulte [`docs/architecture/overview.md`](./docs/architecture/overview.md) e os
 - [x] Configurar ambiente local com Docker Compose (PostgreSQL 16 e Kafka KRaft).
 - [x] Implementar primeiro incremento funcional em `src/` (Ingestão, validação e persistência com idempotência).
 - [x] Implementar testes unitários, testes de integração e testes de contrato em `tests/`.
+- [x] Implementar motor de workflows com etapas sequenciais, políticas de retry e reprocessamento (*Flow Replay*).
+- [x] Implementar orquestração dirigida a eventos com disparo automático ao ingerir eventos associados.
 - [ ] Demonstrar publicação e consumo ponta a ponta integrando Apache Kafka localmente.
-- [ ] Implementar motor de workflows com etapas dependentes, retries exponenciais e DLQ.
+- [ ] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries.
 
 ## 8. Referências Relevantes
 

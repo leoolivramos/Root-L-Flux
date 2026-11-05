@@ -14,7 +14,17 @@ class TesteContratosRootLFlux(unittest.TestCase):
 
     def test_modelos_de_dominio_presentes(self):
         diretorio_dominio = Path(__file__).parent.parent / "src/main/java/com/rootl/flux/domain/model"
-        arquivos_esperados = ["Event.java", "EventId.java", "EventMetadata.java", "ExecutionStatus.java", "FlowExecution.java"]
+        arquivos_esperados = [
+            "Event.java",
+            "EventId.java",
+            "EventMetadata.java",
+            "ExecutionStatus.java",
+            "FlowExecution.java",
+            "FlowDefinition.java",
+            "StepDefinition.java",
+            "StepExecution.java",
+            "RetryPolicy.java"
+        ]
         for nome_arquivo in arquivos_esperados:
             self.assertTrue((diretorio_dominio / nome_arquivo).is_file(), f"{nome_arquivo} deve existir em domain/model")
 

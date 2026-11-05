@@ -66,6 +66,10 @@ public class FlowExecutionJpaEntity {
         return status;
     }
 
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -74,8 +78,16 @@ public class FlowExecutionJpaEntity {
         return completedAt;
     }
 
+    public void setCompletedAt(Instant completedAt) {
+        this.completedAt = completedAt;
+    }
+
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 
     public Long getVersion() {

@@ -2,6 +2,7 @@ package com.rootl.flux.infrastructure.adapter.in.rest;
 
 import com.rootl.flux.application.port.in.ExecuteFlowUseCase;
 import com.rootl.flux.application.port.in.QueryFlowExecutionUseCase;
+import com.rootl.flux.application.port.in.ReplayExecutionUseCase;
 import com.rootl.flux.domain.model.EventId;
 import com.rootl.flux.domain.model.FlowExecution;
 import com.rootl.flux.infrastructure.adapter.in.rest.dto.FlowExecutionResponse;
@@ -14,22 +15,26 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/executions")
-@Tag(name = "Execuções", description = "Endpoints para disparo e acompanhamento de execuções de fluxos")
+@Tag(name = "Execuções", description = "Endpoints para disparo, consulta e recuperação de execuções de fluxos")
 public class FlowExecutionController {
 
     private final ExecuteFlowUseCase executeFlowUseCase;
     private final QueryFlowExecutionUseCase queryFlowExecutionUseCase;
+    private final ReplayExecutionUseCase replayExecutionUseCase;
 
     public FlowExecutionController(ExecuteFlowUseCase executeFlowUseCase,
-                                   QueryFlowExecutionUseCase queryFlowExecutionUseCase) {
+                                   QueryFlowExecutionUseCase queryFlowExecutionUseCase,
+                                   ReplayExecutionUseCase replayExecutionUseCase) {
         this.executeFlowUseCase = executeFlowUseCase;
         this.queryFlowExecutionUseCase = queryFlowExecutionUseCase;
+        this.replayExecutionUseCase = replayExecutionUseCase;
     }
 
     @PostMapping("/trigger")
     @Operation(summary = "Disparar execução de fluxo para um evento", description = "Inicia a execução de um fluxo específico a partir de um evento existente")
     @ApiResponse(responseCode = "201", description = "Execução do fluxo iniciada e concluída com sucesso")
     @ApiResponse(responseCode = "400", description = "Parâmetros inválidos fornecidos")
+    @ApiResponse(responseCode = "404", description = "Fluxo ou evento não localizado")
     public ResponseEntity<FlowExecutionResponse> trigger(
             @RequestParam("flowId") String flowId,
             @RequestParam("eventId") String eventId) {
@@ -38,12 +43,22 @@ public class FlowExecutionController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Consultar execução de fluxo por identificador", description = "Retorna o status atual e metadados de uma execução específica")
+    @Operation(summary = "Consultar execução de fluxo por identificador", description = "Retorna o status atual, metadados e as etapas executadas")
     @ApiResponse(responseCode = "200", description = "Execução localizada com sucesso")
     @ApiResponse(responseCode = "404", description = "Execução não localizada")
     public ResponseEntity<FlowExecutionResponse> getById(@PathVariable("id") String id) {
         return queryFlowExecutionUseCase.getExecution(id)
                 .map(exec -> ResponseEntity.ok(FlowExecutionResponse.fromDomain(exec)))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/replay")
+    @Operation(summary = "Reprocessar execução de fluxo (Flow Replay)", description = "Reinicia a execução de um fluxo a partir das etapas necessárias, permitindo recuperação de falhas")
+    @ApiResponse(responseCode = "200", description = "Reprocessamento executado com sucesso")
+    @ApiResponse(responseCode = "400", description = "Identificador de execução inválido")
+    @ApiResponse(responseCode = "404", description = "Execução ou evento não localizado")
+    public ResponseEntity<FlowExecutionResponse> replay(@PathVariable("id") String id) {
+        FlowExecution replayed = replayExecutionUseCase.replay(id);
+        return ResponseEntity.ok(FlowExecutionResponse.fromDomain(replayed));
     }
 }

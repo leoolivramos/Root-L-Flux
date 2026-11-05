@@ -2,6 +2,9 @@ package com.rootl.flux.domain.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -15,9 +18,16 @@ public class FlowExecution implements Serializable {
     private Instant completedAt;
     private String errorMessage;
     private Long version;
+    private final List<StepExecution> stepExecutions;
 
     public FlowExecution(String id, String flowId, EventId triggerEventId, ExecutionStatus status,
                          Instant createdAt, Instant completedAt, String errorMessage, Long version) {
+        this(id, flowId, triggerEventId, status, createdAt, completedAt, errorMessage, version, new ArrayList<>());
+    }
+
+    public FlowExecution(String id, String flowId, EventId triggerEventId, ExecutionStatus status,
+                         Instant createdAt, Instant completedAt, String errorMessage, Long version,
+                         List<StepExecution> stepExecutions) {
         this.id = Objects.requireNonNull(id, "O identificador da execução (id) não pode ser nulo");
         this.flowId = Objects.requireNonNull(flowId, "O identificador do fluxo (flowId) não pode ser nulo");
         this.triggerEventId = Objects.requireNonNull(triggerEventId, "O identificador do evento disparador (triggerEventId) não pode ser nulo");
@@ -25,7 +35,8 @@ public class FlowExecution implements Serializable {
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.completedAt = completedAt;
         this.errorMessage = errorMessage;
-        this.version = version != null ? version : 0L;
+        this.version = version;
+        this.stepExecutions = stepExecutions != null ? new ArrayList<>(stepExecutions) : new ArrayList<>();
     }
 
     public static FlowExecution start(String flowId, EventId triggerEventId) {
@@ -37,19 +48,39 @@ public class FlowExecution implements Serializable {
                 Instant.now(),
                 null,
                 null,
-                0L
+                null,
+                new ArrayList<>()
         );
+    }
+
+    public void addStepExecution(StepExecution stepExecution) {
+        if (stepExecution != null) {
+            this.stepExecutions.add(stepExecution);
+        }
+    }
+
+    public void markRunning() {
+        this.status = ExecutionStatus.RUNNING;
+        this.completedAt = null;
+        this.errorMessage = null;
     }
 
     public void complete() {
         this.status = ExecutionStatus.COMPLETED;
         this.completedAt = Instant.now();
+        this.errorMessage = null;
     }
 
     public void fail(String reason) {
         this.status = ExecutionStatus.FAILED;
         this.completedAt = Instant.now();
         this.errorMessage = reason;
+    }
+
+    public void replay() {
+        this.status = ExecutionStatus.RUNNING;
+        this.completedAt = null;
+        this.errorMessage = null;
     }
 
     public String getId() {
@@ -86,5 +117,9 @@ public class FlowExecution implements Serializable {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public List<StepExecution> getStepExecutions() {
+        return Collections.unmodifiableList(stepExecutions);
     }
 }

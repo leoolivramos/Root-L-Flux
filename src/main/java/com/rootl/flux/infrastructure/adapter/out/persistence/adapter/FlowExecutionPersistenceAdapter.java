@@ -21,7 +21,18 @@ public class FlowExecutionPersistenceAdapter implements FlowExecutionRepositoryP
 
     @Override
     public FlowExecution save(FlowExecution execution) {
-        FlowExecutionJpaEntity entity = toEntity(execution);
+        Optional<FlowExecutionJpaEntity> existing = repository.findById(execution.getId());
+        FlowExecutionJpaEntity entity;
+
+        if (existing.isPresent()) {
+            entity = existing.get();
+            entity.setStatus(execution.getStatus().name());
+            entity.setCompletedAt(execution.getCompletedAt());
+            entity.setErrorMessage(execution.getErrorMessage());
+        } else {
+            entity = toEntity(execution);
+        }
+
         FlowExecutionJpaEntity saved = repository.save(entity);
         return toDomain(saved);
     }

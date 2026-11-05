@@ -2,11 +2,12 @@ package com.rootl.flux.infrastructure.config;
 
 import com.rootl.flux.application.port.in.ExecuteFlowUseCase;
 import com.rootl.flux.application.port.in.IngestEventUseCase;
+import com.rootl.flux.application.port.in.ManageFlowDefinitionUseCase;
 import com.rootl.flux.application.port.in.QueryFlowExecutionUseCase;
-import com.rootl.flux.application.port.out.EventPublisherPort;
-import com.rootl.flux.application.port.out.EventRepositoryPort;
-import com.rootl.flux.application.port.out.FlowExecutionRepositoryPort;
+import com.rootl.flux.application.port.in.ReplayExecutionUseCase;
+import com.rootl.flux.application.port.out.*;
 import com.rootl.flux.application.service.EventIngestionService;
+import com.rootl.flux.application.service.FlowDefinitionService;
 import com.rootl.flux.application.service.FlowExecutionOrchestrator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,16 +16,22 @@ import org.springframework.context.annotation.Configuration;
 public class BeanConfiguration {
 
     @Bean
-    public IngestEventUseCase ingestEventUseCase(EventRepositoryPort eventRepositoryPort,
-                                                EventPublisherPort eventPublisherPort) {
-        return new EventIngestionService(eventRepositoryPort, eventPublisherPort);
+    public ManageFlowDefinitionUseCase manageFlowDefinitionUseCase(FlowDefinitionRepositoryPort repository) {
+        return new FlowDefinitionService(repository);
     }
 
     @Bean
     public FlowExecutionOrchestrator flowExecutionOrchestrator(
             FlowExecutionRepositoryPort flowExecutionRepositoryPort,
+            FlowDefinitionRepositoryPort flowDefinitionRepositoryPort,
+            StepExecutionRepositoryPort stepExecutionRepositoryPort,
             EventRepositoryPort eventRepositoryPort) {
-        return new FlowExecutionOrchestrator(flowExecutionRepositoryPort, eventRepositoryPort);
+        return new FlowExecutionOrchestrator(
+                flowExecutionRepositoryPort,
+                flowDefinitionRepositoryPort,
+                stepExecutionRepositoryPort,
+                eventRepositoryPort
+        );
     }
 
     @Bean
@@ -35,5 +42,24 @@ public class BeanConfiguration {
     @Bean
     public QueryFlowExecutionUseCase queryFlowExecutionUseCase(FlowExecutionOrchestrator orchestrator) {
         return orchestrator;
+    }
+
+    @Bean
+    public ReplayExecutionUseCase replayExecutionUseCase(FlowExecutionOrchestrator orchestrator) {
+        return orchestrator;
+    }
+
+    @Bean
+    public IngestEventUseCase ingestEventUseCase(
+            EventRepositoryPort eventRepositoryPort,
+            EventPublisherPort eventPublisherPort,
+            FlowDefinitionRepositoryPort flowDefinitionRepositoryPort,
+            ExecuteFlowUseCase executeFlowUseCase) {
+        return new EventIngestionService(
+                eventRepositoryPort,
+                eventPublisherPort,
+                flowDefinitionRepositoryPort,
+                executeFlowUseCase
+        );
     }
 }

@@ -17,6 +17,27 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: root-l-flux-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+
+flux:
+  kafka:
+    enabled: ${FLUX_KAFKA_ENABLED:true}
+    topics:
+      events-raw: root-l-flux.events.raw
+      events-dlq: root-l-flux.events.dlq
+    retry:
+      max-attempts: 3
+      backoff-interval-ms: 1000
 
 management:
   endpoints:

@@ -9,3 +9,15 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9092}
+
+flux:
+  kafka:
+    enabled: true
+    topics:
+      events-raw: root-l-flux.events.raw.test
+      events-dlq: root-l-flux.events.dlq.test
+    retry:
+      max-attempts: 2
+      backoff-interval-ms: 100

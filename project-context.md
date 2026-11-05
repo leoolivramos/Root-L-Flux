@@ -110,8 +110,8 @@ Consulte [`docs/architecture/overview.md`](./docs/architecture/overview.md) e os
 - [x] Implementar testes unitários, testes de integração e testes de contrato em `tests/`.
 - [x] Implementar motor de workflows com etapas sequenciais, políticas de retry e reprocessamento (*Flow Replay*).
 - [x] Implementar orquestração dirigida a eventos com disparo automático ao ingerir eventos associados.
-- [ ] Demonstrar publicação e consumo ponta a ponta integrando Apache Kafka localmente.
-- [ ] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries.
+- [x] Demonstrar publicação e consumo ponta a ponta integrando Apache Kafka localmente.
+- [x] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries.
 
 ## 8. Referências Relevantes
 

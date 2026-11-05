@@ -19,9 +19,10 @@
 - [x] Mecanismo de recuperação e reprocessamento (*Flow Replay*)
 - [x] Adaptadores de Persistência JPA (`Event`, `FlowDefinition`, `FlowExecution`, `StepExecution`)
 - [x] Adaptadores REST completos (`EventController`, `FlowDefinitionController`, `FlowExecutionController`) com OpenAPI 3.0
-- [x] Suíte abrangente de 16 testes automatizados unitários, de integração e contratuais
-- [ ] Integração do produtor e consumidor de eventos com Apache Kafka
-- [ ] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries
+- [x] Suíte abrangente de 18 testes automatizados unitários, de integração, kafka e contratuais
+- [x] Integração do produtor e consumidor de eventos com Apache Kafka
+- [x] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries
+- [x] Endpoints e monitor de inspeção/reprocessamento da DLQ (`/api/v1/dlq`)
 
 ## Marco 3 — Consolidação
 - [ ] Revisão técnica de qualidade e segurança (`technical-review`)

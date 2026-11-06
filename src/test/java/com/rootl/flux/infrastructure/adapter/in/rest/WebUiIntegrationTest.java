@@ -39,4 +39,11 @@ class WebUiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Root L Flux")));
     }
+
+    @Test
+    @DisplayName("GET /api/v1/executions deve retornar lista de execuções com status 200")
+    void shouldListExecutionsSuccessfully() throws Exception {
+        mockMvc.perform(get("/api/v1/executions"))
+                .andExpect(status().isOk());
+    }
 }

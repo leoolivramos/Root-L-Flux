@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/executions")
 @Tag(name = "Execuções", description = "Endpoints para disparo, consulta e recuperação de execuções de fluxos")
@@ -28,6 +30,17 @@ public class FlowExecutionController {
         this.executeFlowUseCase = executeFlowUseCase;
         this.queryFlowExecutionUseCase = queryFlowExecutionUseCase;
         this.replayExecutionUseCase = replayExecutionUseCase;
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar todas as execuções de fluxos", description = "Retorna histórico recente de execuções com suas respectivas etapas e status")
+    @ApiResponse(responseCode = "200", description = "Lista de execuções recuperada com sucesso")
+    public ResponseEntity<List<FlowExecutionResponse>> listAll() {
+        List<FlowExecutionResponse> responses = queryFlowExecutionUseCase.getAllExecutions()
+                .stream()
+                .map(FlowExecutionResponse::fromDomain)
+                .toList();
+        return ResponseEntity.ok(responses);
     }
 
     @PostMapping("/trigger")

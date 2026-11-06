@@ -127,9 +127,6 @@
     <div>
       <a href="/swagger-ui.html" target="_blank">OpenAPI / Swagger</a>
       <button onclick="carregarDados()">Atualizar</button>
-      <div>
-        <span></span> Online (Porta 8080)
-      </div>
     </div>
   </header>
 
@@ -158,29 +155,36 @@
     <button onclick="switchTab('tab-eventos')">Disparar Evento</button>
     <button onclick="switchTab('tab-fluxos')">Definições de Fluxos</button>
     <button onclick="switchTab('tab-dlq')">Dead Letter Queue (DLQ)</button>
-    <button onclick="switchTab('tab-observabilidade')">📊 Observabilidade</button>
+    <button onclick="switchTab('tab-observabilidade')">Observabilidade</button>
   </div>
 
+  <!-- Tab: Execuções de Workflows -->
   <div id="tab-execucoes" data-tab>
     <div>
-      <div>
-        <h2>Execuções e Etapas (Workflows)</h2>
-        <span>Dispare um evento para visualizar as etapas aqui</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+        <div>
+          <h2 style="margin:0;">Execuções e Etapas (Workflows)</h2>
+          <span style="color:#666;">Acompanhe o pipeline visual das etapas orquestradas ponta a ponta</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="testarFluxoPontaAPonta()" style="background:#0284c7; color:white; font-weight:bold; cursor:pointer; border:none; border-radius:4px; padding:6px 12px;">▶ Disparar Teste de Ponta a Ponta</button>
+          <button onclick="carregarExecucoes()">Atualizar</button>
+        </div>
       </div>
       <div>
         <table>
           <thead>
             <tr>
-              <th>ID da Execução</th>
+              <th>ID</th>
               <th>Workflow (FlowId)</th>
               <th>Status</th>
-              <th>Início</th>
-              <th>Etapas Concluídas</th>
+              <th>Horário</th>
+              <th>Pipeline de Etapas (Ponta a Ponta)</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody id="lista-execucoes">
-            <tr><td colspan="6">Nenhuma execução recente carregada. Dispare um evento para iniciar!</td></tr>
+            <tr><td colspan="6">Carregando execuções...</td></tr>
           </tbody>
         </table>
       </div>
@@ -279,7 +283,7 @@
   <div id="tab-observabilidade" data-tab hidden>
     <div>
       <div>
-        <h2>Painel de Observabilidade (Métricas, Saúde & Tracing)</h2>
+        <h2>Painel de Observabilidade</h2>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <a href="/actuator/prometheus" target="_blank" style="padding: 6px 12px; background: #0284c7; color: white; border-radius: 4px; text-decoration: none;">Prometheus Scrape</a>
           <a href="/actuator/health" target="_blank" style="padding: 6px 12px; background: #059669; color: white; border-radius: 4px; text-decoration: none;">Health Check</a>
@@ -310,7 +314,6 @@
           <p><strong>Padrão:</strong> W3C Trace Context</p>
           <p><strong>Propagação:</strong> traceparent nos Headers HTTP e Kafka</p>
           <p><strong>Contexto MDC:</strong> correlationId, traceId, spanId</p>
-          <p><strong>Amostragem:</strong> 100% (Modo Dev/Local)</p>
         </div>
       </div>
     </div>
@@ -325,6 +328,7 @@
     document.querySelectorAll('[data-tab]').forEach(content => {
       content.hidden = content.id !== tabId;
     });
+    if (tabId === 'tab-execucoes') carregarExecucoes();
     if (tabId === 'tab-dlq') carregarDlq();
     if (tabId === 'tab-fluxos') carregarFluxos();
     if (tabId === 'tab-observabilidade') carregarObservabilidade();
@@ -356,7 +360,105 @@
     }
   }
 
-  // Ingerir Evento
+  // Disparo de Teste Ponta a Ponta
+  async function testarFluxoPontaAPonta() {
+    showToast('Iniciando teste de ponta a ponta...');
+    try {
+      // 1. Cadastra o workflow de processamento caso não exista
+      await fetch('/api/v1/flows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flowId: "fluxo-processamento-pedidos",
+          name: "Processamento de Pedidos (Ponta a Ponta)",
+          triggerEventType: "pedido.criado",
+          steps: [
+            { stepId: "validar-estoque", name: "Validação de Estoque", orderIndex: 1, actionType: "VALIDACAO", maxAttempts: 3 },
+            { stepId: "processar-pagamento", name: "Processar Pagamento", orderIndex: 2, actionType: "INTEGRACAO", maxAttempts: 3 },
+            { stepId: "emitir-nota", name: "Emitir Nota Fiscal", orderIndex: 3, actionType: "INTEGRACAO", maxAttempts: 2 }
+          ]
+        })
+      });
+
+      // 2. Dispara o evento de gatilho
+      const pedidoNum = Math.floor(Math.random() * 90000 + 10000);
+      const idempotencyKey = "e2e-" + Date.now();
+      const eventResp = await fetch('/api/v1/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: "pedido.criado",
+          source: "console-teste-e2e",
+          idempotencyKey: idempotencyKey,
+          payload: JSON.stringify({
+            pedidoId: "PED-" + pedidoNum,
+            cliente: "Leonardo Ramos",
+            valor: (Math.random() * 400 + 50).toFixed(2),
+            itens: ["Produto A", "Produto B"]
+          })
+        })
+      });
+
+      if (eventResp.ok) {
+        const evData = await eventResp.json();
+        showToast(`Evento ingerido e publicado! ID: ${evData.id}. Etapas executadas!`);
+        setTimeout(carregarExecucoes, 300);
+        setTimeout(carregarDados, 600);
+      } else {
+        const err = await eventResp.json();
+        showToast(`Erro ao disparar evento: ${err.detail || err.title}`);
+      }
+    } catch (err) {
+      showToast('Erro de conexão ao executar teste ponta a ponta');
+    }
+  }
+
+  // Carregar Execuções e Etapas (Visualizador Ponta a Ponta)
+  async function carregarExecucoes() {
+    try {
+      const resp = await fetch('/api/v1/executions');
+      if (resp.ok) {
+        const execucoes = await resp.json();
+        const tbody = document.getElementById('lista-execucoes');
+        if (execucoes.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">Nenhuma execução recente. Clique no botão azul <strong>"▶ Disparar Teste de Ponta a Ponta"</strong> acima para rodar agora!</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = execucoes.map(ex => {
+          const statusBg = ex.status === 'COMPLETED' ? '#166534' : (ex.status === 'FAILED' ? '#991b1b' : '#854d0e');
+          const statusBadge = `<span style="background:${statusBg}; color:white; padding: 2px 8px; border-radius: 4px; font-weight:bold; font-size:0.8rem;">${ex.status}</span>`;
+          
+          const stepsHtml = (ex.steps && ex.steps.length > 0)
+            ? `<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">` +
+              ex.steps.map(s => {
+                const sBg = s.status === 'COMPLETED' ? '#22c55e' : (s.status === 'FAILED' ? '#ef4444' : '#eab308');
+                return `<span title="Status: ${s.status} | Output: ${s.output || ''}" style="border:1px solid ${sBg}; background:#fafafa; border-radius:4px; padding:3px 6px; font-size:0.75rem;">
+                  <strong style="color:${sBg}">● ${s.orderIndex}. ${s.stepId}</strong>
+                </span>`;
+              }).join(' <span style="color:#aaa;">➔</span> ') + `</div>`
+            : '<span style="color:#888;">Aguardando etapas...</span>';
+
+          const hora = ex.createdAt ? new Date(ex.createdAt).toLocaleTimeString() : '-';
+
+          return `<tr>
+            <td><code style="font-size:0.8rem;">${ex.id.substring(0, 8)}...</code></td>
+            <td><strong>${ex.flowId}</strong><br><small style="color:#888;">Gatilho: ${ex.triggerEventId ? ex.triggerEventId.substring(0, 8) + '...' : '-'}</small></td>
+            <td>${statusBadge}</td>
+            <td>${hora}</td>
+            <td>${stepsHtml}</td>
+            <td>
+              <button onclick="replayExecucao('${ex.id}')" style="padding:4px 8px; font-size:0.8rem;">Replay</button>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar execuções:', err);
+    }
+  }
+
+  // Ingerir Evento Manual
   async function enviarEvento(e) {
     e.preventDefault();
     const type = document.getElementById('ev-type').value;
@@ -547,6 +649,7 @@
 
   // Carregar todos os dados
   function carregarDados() {
+    carregarExecucoes();
     carregarFluxos();
     carregarDlq();
   }

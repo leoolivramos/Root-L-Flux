@@ -127,7 +127,7 @@ O **Root L Flux** possui uma camada completa de observabilidade para monitorar a
 - **Catálogo de Métricas:** Em `http://localhost:8080/actuator/metrics` com medições de `flux.events.ingested`, `flux.events.duplicates`, `flux.workflows.executions` e `flux.dlq.messages`.
 - **Distributed Tracing (OpenTelemetry + W3C):** Propagação do cabeçalho oficial `traceparent` no Kafka e injeção automática de `X-Correlation-Id` e `X-Trace-Id` nas respostas HTTP.
 - **Logs Estruturados:** Todas as linhas de log trazem `[root-l-flux,traceId,spanId]` correlacionadas via MDC do Logback/SLF4J.
-- **Console Web Integrada:** Aba dedicada **📊 Observabilidade** na interface web (`http://localhost:8080/`) com métricas da JVM, uptime e saúde do sistema com atualização em um clique.
+- **Console Web Integrada:** Aba dedicada **Observabilidade** na interface web (`http://localhost:8080/`) com métricas da JVM, uptime e saúde do sistema com atualização em um clique.
 
 ---
 

@@ -35,7 +35,6 @@ public class StepExecutionJpaEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
-    @Lob
     @Column(name = "output", columnDefinition = "TEXT")
     private String output;
 

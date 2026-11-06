@@ -33,7 +33,6 @@ public class EventJpaEntity {
     @Column(name = "timestamp", nullable = false)
     private Instant timestamp;
 
-    @Lob
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 

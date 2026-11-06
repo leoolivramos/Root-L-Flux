@@ -36,8 +36,11 @@ public class KafkaEventConsumer {
             String type = root.path("type").asText("desconhecido");
             String payload = root.path("payload").asText("");
 
-            // Verificação de simulação de falha para teste de resiliência e DLQ
-            if (payload.contains("\"simular_erro\":true") || payload.contains("\"forcar_dlq\":true")) {
+            // Verificação de simulação de falha para teste de resiliência e DLQ (flexível a formatos e espaços)
+            boolean deveSimularFalha = (payload != null && (payload.contains("simular_erro") || payload.contains("forcar_dlq")))
+                    || (record.value() != null && (record.value().contains("simular_erro") || record.value().contains("forcar_dlq")));
+
+            if (deveSimularFalha) {
                 log.error("[ConsumidorKafka] Simulação de erro detectada no payload. Lançando exceção para ativar política de retries.");
                 throw new IllegalStateException("Falha crítica simulada para verificação de retries e envio à DLQ");
             }

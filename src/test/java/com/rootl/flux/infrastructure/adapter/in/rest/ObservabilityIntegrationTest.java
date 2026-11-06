@@ -56,6 +56,12 @@ class ObservabilityIntegrationTest {
     @Test
     @DisplayName("Deve expor o endpoint de scraping do Prometheus com métricas formatadas")
     void shouldExposePrometheusScrapeEndpoint() throws Exception {
+        MvcResult browserRes = mockMvc.perform(get("/actuator/prometheus")
+                        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"))
+                .andReturn();
+        System.out.println("=== BROWSER STATUS: " + browserRes.getResponse().getStatus());
+        System.out.println("=== BROWSER BODY: " + browserRes.getResponse().getContentAsString());
+
         MvcResult result = mockMvc.perform(get("/actuator/prometheus"))
                 .andExpect(status().isOk())
                 .andReturn();

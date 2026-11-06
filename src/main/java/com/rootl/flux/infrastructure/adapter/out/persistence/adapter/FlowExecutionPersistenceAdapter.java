@@ -8,6 +8,7 @@ import com.rootl.flux.infrastructure.adapter.out.persistence.entity.FlowExecutio
 import com.rootl.flux.infrastructure.adapter.out.persistence.repository.SpringDataFlowExecutionRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -40,6 +41,13 @@ public class FlowExecutionPersistenceAdapter implements FlowExecutionRepositoryP
     @Override
     public Optional<FlowExecution> findById(String id) {
         return repository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<FlowExecution> findAll() {
+        return repository.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     private FlowExecutionJpaEntity toEntity(FlowExecution domain) {

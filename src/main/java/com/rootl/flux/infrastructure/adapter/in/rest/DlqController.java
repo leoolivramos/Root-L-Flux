@@ -1,10 +1,12 @@
 package com.rootl.flux.infrastructure.adapter.in.rest;
 
+import com.rootl.flux.application.port.out.MetricsPort;
 import com.rootl.flux.infrastructure.adapter.in.messaging.kafka.DlqMessageStore;
 import com.rootl.flux.infrastructure.adapter.in.messaging.kafka.DlqMessageStore.DlqItem;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -20,14 +22,17 @@ public class DlqController {
     private final DlqMessageStore dlqMessageStore;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final String eventsRawTopic;
+    private final MetricsPort metricsPort;
 
     public DlqController(
             DlqMessageStore dlqMessageStore,
             KafkaTemplate<String, String> kafkaTemplate,
-            @Value("${flux.kafka.topics.events-raw:root-l-flux.events.raw}") String eventsRawTopic) {
+            @Value("${flux.kafka.topics.events-raw:root-l-flux.events.raw}") String eventsRawTopic,
+            @Autowired(required = false) MetricsPort metricsPort) {
         this.dlqMessageStore = dlqMessageStore;
         this.kafkaTemplate = kafkaTemplate;
         this.eventsRawTopic = eventsRawTopic;
+        this.metricsPort = metricsPort;
     }
 
     @GetMapping
@@ -55,6 +60,9 @@ public class DlqController {
                 .findFirst()
                 .map(item -> {
                     kafkaTemplate.send(eventsRawTopic, item.key(), item.payload());
+                    if (metricsPort != null) {
+                        metricsPort.recordDlqReprocessed("SUCESSO");
+                    }
                     return ResponseEntity.ok("Mensagem com chave '" + item.key() + "' reenviada ao tópico '" + eventsRawTopic + "'");
                 })
                 .orElse(ResponseEntity.notFound().build());

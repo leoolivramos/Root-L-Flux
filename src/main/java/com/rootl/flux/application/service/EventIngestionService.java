@@ -5,6 +5,7 @@ import com.rootl.flux.application.port.in.IngestEventUseCase;
 import com.rootl.flux.application.port.out.EventPublisherPort;
 import com.rootl.flux.application.port.out.EventRepositoryPort;
 import com.rootl.flux.application.port.out.FlowDefinitionRepositoryPort;
+import com.rootl.flux.application.port.out.MetricsPort;
 import com.rootl.flux.domain.exception.DuplicateEventException;
 import com.rootl.flux.domain.exception.EventValidationException;
 import com.rootl.flux.domain.model.Event;
@@ -24,20 +25,30 @@ public class EventIngestionService implements IngestEventUseCase {
     private final EventPublisherPort eventPublisherPort;
     private final FlowDefinitionRepositoryPort flowDefinitionRepositoryPort;
     private final ExecuteFlowUseCase executeFlowUseCase;
+    private final MetricsPort metricsPort;
 
     public EventIngestionService(EventRepositoryPort eventRepositoryPort,
                                  EventPublisherPort eventPublisherPort) {
-        this(eventRepositoryPort, eventPublisherPort, null, null);
+        this(eventRepositoryPort, eventPublisherPort, null, null, null);
     }
 
     public EventIngestionService(EventRepositoryPort eventRepositoryPort,
                                  EventPublisherPort eventPublisherPort,
                                  FlowDefinitionRepositoryPort flowDefinitionRepositoryPort,
                                  ExecuteFlowUseCase executeFlowUseCase) {
+        this(eventRepositoryPort, eventPublisherPort, flowDefinitionRepositoryPort, executeFlowUseCase, null);
+    }
+
+    public EventIngestionService(EventRepositoryPort eventRepositoryPort,
+                                 EventPublisherPort eventPublisherPort,
+                                 FlowDefinitionRepositoryPort flowDefinitionRepositoryPort,
+                                 ExecuteFlowUseCase executeFlowUseCase,
+                                 MetricsPort metricsPort) {
         this.eventRepositoryPort = Objects.requireNonNull(eventRepositoryPort, "A porta do repositório de eventos não pode ser nula");
         this.eventPublisherPort = Objects.requireNonNull(eventPublisherPort, "A porta do publicador de eventos não pode ser nula");
         this.flowDefinitionRepositoryPort = flowDefinitionRepositoryPort;
         this.executeFlowUseCase = executeFlowUseCase;
+        this.metricsPort = metricsPort;
     }
 
     @Override
@@ -60,6 +71,9 @@ public class EventIngestionService implements IngestEventUseCase {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             var existing = eventRepositoryPort.findByIdempotencyKey(idempotencyKey);
             if (existing.isPresent()) {
+                if (metricsPort != null) {
+                    metricsPort.recordDuplicateEvent(command.type(), command.source());
+                }
                 throw new DuplicateEventException(idempotencyKey);
             }
         }
@@ -75,6 +89,10 @@ public class EventIngestionService implements IngestEventUseCase {
 
         Event savedEvent = eventRepositoryPort.save(event);
         eventPublisherPort.publish(savedEvent);
+
+        if (metricsPort != null) {
+            metricsPort.recordEventIngested(savedEvent.getType(), savedEvent.getMetadata().source(), "SUCESSO");
+        }
 
         // Disparo automático de fluxos cadastrados para este tipo de evento
         if (flowDefinitionRepositoryPort != null && executeFlowUseCase != null) {

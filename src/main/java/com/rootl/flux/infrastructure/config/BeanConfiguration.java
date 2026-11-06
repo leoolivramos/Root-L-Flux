@@ -25,12 +25,14 @@ public class BeanConfiguration {
             FlowExecutionRepositoryPort flowExecutionRepositoryPort,
             FlowDefinitionRepositoryPort flowDefinitionRepositoryPort,
             StepExecutionRepositoryPort stepExecutionRepositoryPort,
-            EventRepositoryPort eventRepositoryPort) {
+            EventRepositoryPort eventRepositoryPort,
+            MetricsPort metricsPort) {
         return new FlowExecutionOrchestrator(
                 flowExecutionRepositoryPort,
                 flowDefinitionRepositoryPort,
                 stepExecutionRepositoryPort,
-                eventRepositoryPort
+                eventRepositoryPort,
+                metricsPort
         );
     }
 
@@ -54,12 +56,14 @@ public class BeanConfiguration {
             EventRepositoryPort eventRepositoryPort,
             EventPublisherPort eventPublisherPort,
             FlowDefinitionRepositoryPort flowDefinitionRepositoryPort,
-            ExecuteFlowUseCase executeFlowUseCase) {
+            ExecuteFlowUseCase executeFlowUseCase,
+            MetricsPort metricsPort) {
         return new EventIngestionService(
                 eventRepositoryPort,
                 eventPublisherPort,
                 flowDefinitionRepositoryPort,
-                executeFlowUseCase
+                executeFlowUseCase,
+                metricsPort
         );
     }
 }

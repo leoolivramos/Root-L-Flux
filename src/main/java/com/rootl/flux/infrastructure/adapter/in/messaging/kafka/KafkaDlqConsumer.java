@@ -1,9 +1,11 @@
 package com.rootl.flux.infrastructure.adapter.in.messaging.kafka;
 
+import com.rootl.flux.application.port.out.MetricsPort;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
@@ -18,9 +20,11 @@ public class KafkaDlqConsumer {
     private static final Logger log = LoggerFactory.getLogger(KafkaDlqConsumer.class);
 
     private final DlqMessageStore dlqMessageStore;
+    private final MetricsPort metricsPort;
 
-    public KafkaDlqConsumer(DlqMessageStore dlqMessageStore) {
+    public KafkaDlqConsumer(DlqMessageStore dlqMessageStore, @Autowired(required = false) MetricsPort metricsPort) {
         this.dlqMessageStore = dlqMessageStore;
+        this.metricsPort = metricsPort;
     }
 
     @KafkaListener(
@@ -45,6 +49,9 @@ public class KafkaDlqConsumer {
         );
 
         dlqMessageStore.add(item);
+        if (metricsPort != null) {
+            metricsPort.recordDlqMessage(exceptionMessage);
+        }
     }
 
     private String extractHeader(ConsumerRecord<String, String> record, String primaryHeader, String secondaryHeader, String defaultValue) {

@@ -25,3 +25,27 @@ flux:
     retry:
       max-attempts: 2
       backoff-interval-ms: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: root-l-flux-test
+      environment: test
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: W3C

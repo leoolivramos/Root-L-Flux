@@ -121,12 +121,12 @@
 
 <div>
   <header>
-    <div >
+    <div>
       <h1>Root L Flux <span>Orquestrador v0.1</span></h1>
     </div>
     <div>
       <a href="/swagger-ui.html" target="_blank">OpenAPI / Swagger</a>
-      <button onclick="carregarDados()" >Atualizar</button>
+      <button onclick="carregarDados()">Atualizar</button>
       <div>
         <span></span> Online (Porta 8080)
       </div>
@@ -158,6 +158,7 @@
     <button onclick="switchTab('tab-eventos')">Disparar Evento</button>
     <button onclick="switchTab('tab-fluxos')">Definições de Fluxos</button>
     <button onclick="switchTab('tab-dlq')">Dead Letter Queue (DLQ)</button>
+    <button onclick="switchTab('tab-observabilidade')">📊 Observabilidade</button>
   </div>
 
   <div id="tab-execucoes" data-tab>
@@ -273,6 +274,47 @@
       </div>
     </div>
   </div>
+
+  <!-- Tab: Observabilidade -->
+  <div id="tab-observabilidade" data-tab hidden>
+    <div>
+      <div>
+        <h2>Painel de Observabilidade (Métricas, Saúde & Tracing)</h2>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="/actuator/prometheus" target="_blank" style="padding: 6px 12px; background: #0284c7; color: white; border-radius: 4px; text-decoration: none;">Prometheus Scrape</a>
+          <a href="/actuator/health" target="_blank" style="padding: 6px 12px; background: #059669; color: white; border-radius: 4px; text-decoration: none;">Health Check</a>
+          <a href="/actuator/metrics" target="_blank" style="padding: 6px 12px; background: #7c3aed; color: white; border-radius: 4px; text-decoration: none;">Métricas Micrometer</a>
+          <button onclick="carregarObservabilidade()">Atualizar Métricas</button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0;">
+        <div style="border: 1px solid #ccc; padding: 12px;">
+          <h3 style="margin-top:0;">Status Operacional (Health)</h3>
+          <p><strong>Status Geral:</strong> <span id="obs-health-status" style="font-weight: bold; color: green;">UP</span></p>
+          <p><strong>Plataforma:</strong> Root L Flux</p>
+          <p><strong>Mensagens na DLQ:</strong> <span id="obs-dlq-count">0</span></p>
+          <p><strong>Fluxos Ativos:</strong> <span id="obs-flows-count">0</span></p>
+        </div>
+
+        <div style="border: 1px solid #ccc; padding: 12px;">
+          <h3 style="margin-top:0;">Métricas JVM & Runtime</h3>
+          <p><strong>Uptime:</strong> <span id="obs-uptime">-</span></p>
+          <p><strong>Memória JVM Usada:</strong> <span id="obs-memory">-</span></p>
+          <p><strong>Threads Ativas:</strong> <span id="obs-threads">-</span></p>
+          <p><strong>Garbage Collector:</strong> JVM G1/ZGC Monitorado</p>
+        </div>
+
+        <div style="border: 1px solid #ccc; padding: 12px;">
+          <h3 style="margin-top:0;">Rastreamento Distribuído (Tracing)</h3>
+          <p><strong>Padrão:</strong> W3C Trace Context</p>
+          <p><strong>Propagação:</strong> traceparent nos Headers HTTP e Kafka</p>
+          <p><strong>Contexto MDC:</strong> correlationId, traceId, spanId</p>
+          <p><strong>Amostragem:</strong> 100% (Modo Dev/Local)</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="mensagem" role="status" aria-live="polite"></div>
@@ -285,6 +327,7 @@
     });
     if (tabId === 'tab-dlq') carregarDlq();
     if (tabId === 'tab-fluxos') carregarFluxos();
+    if (tabId === 'tab-observabilidade') carregarObservabilidade();
   }
 
   // Mensagens de status
@@ -455,6 +498,50 @@
     if (resp.ok) {
       showToast('Flow Replay executado com sucesso!');
       carregarDados();
+    }
+  }
+
+  // Carregar Observabilidade
+  async function carregarObservabilidade() {
+    try {
+      const healthResp = await fetch('/actuator/health');
+      if (healthResp.ok) {
+        const hData = await healthResp.json();
+        document.getElementById('obs-health-status').textContent = hData.status || 'UP';
+        if (hData.components && hData.components.flux && hData.components.flux.details) {
+          const details = hData.components.flux.details;
+          document.getElementById('obs-dlq-count').textContent = details.mensagensDlqRetidas || '0';
+          document.getElementById('obs-flows-count').textContent = details.fluxosRegistrados || '0';
+        }
+      }
+
+      const uptimeResp = await fetch('/actuator/metrics/process.uptime');
+      if (uptimeResp.ok) {
+        const uData = await uptimeResp.json();
+        if (uData.measurements && uData.measurements[0]) {
+          const sec = Math.floor(uData.measurements[0].value);
+          document.getElementById('obs-uptime').textContent = `${Math.floor(sec / 60)}m ${sec % 60}s`;
+        }
+      }
+
+      const memResp = await fetch('/actuator/metrics/jvm.memory.used');
+      if (memResp.ok) {
+        const mData = await memResp.json();
+        if (mData.measurements && mData.measurements[0]) {
+          const mb = (mData.measurements[0].value / (1024 * 1024)).toFixed(1);
+          document.getElementById('obs-memory').textContent = `${mb} MB`;
+        }
+      }
+
+      const thrResp = await fetch('/actuator/metrics/jvm.threads.live');
+      if (thrResp.ok) {
+        const tData = await thrResp.json();
+        if (tData.measurements && tData.measurements[0]) {
+          document.getElementById('obs-threads').textContent = tData.measurements[0].value;
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar métricas de observabilidade:', err);
     }
   }
 

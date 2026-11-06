@@ -118,6 +118,19 @@ curl -X POST http://localhost:8080/api/v1/dlq/<ID_DA_MENSAGEM>/reprocessar
 
 ---
 
+## Observabilidade (Métricas, Logs e Tracing)
+
+O **Root L Flux** possui uma camada completa de observabilidade para monitorar a saúde e o ciclo de vida dos eventos em tempo real:
+
+- **Métricas Prometheus:** Expostas nativamente via Micrometer em `http://localhost:8080/actuator/prometheus`.
+- **Health Check Detalhado:** Em `http://localhost:8080/actuator/health`, incluindo o indicador customizado `flux` com contagem de mensagens na DLQ e fluxos cadastrados.
+- **Catálogo de Métricas:** Em `http://localhost:8080/actuator/metrics` com medições de `flux.events.ingested`, `flux.events.duplicates`, `flux.workflows.executions` e `flux.dlq.messages`.
+- **Distributed Tracing (OpenTelemetry + W3C):** Propagação do cabeçalho oficial `traceparent` no Kafka e injeção automática de `X-Correlation-Id` e `X-Trace-Id` nas respostas HTTP.
+- **Logs Estruturados:** Todas as linhas de log trazem `[root-l-flux,traceId,spanId]` correlacionadas via MDC do Logback/SLF4J.
+- **Console Web Integrada:** Aba dedicada **📊 Observabilidade** na interface web (`http://localhost:8080/`) com métricas da JVM, uptime e saúde do sistema com atualização em um clique.
+
+---
+
 ## Testes de Carga e Estresse
 
 O projeto já vem pronto para ser estressado ao limite, tanto via JUnit automatizado quanto via script CLI Python com métricas detalhadas (RPS, latência P50, P90, P95, P99).

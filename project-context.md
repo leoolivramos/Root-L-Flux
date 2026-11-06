@@ -112,6 +112,8 @@ Consulte [`docs/architecture/overview.md`](./docs/architecture/overview.md) e os
 - [x] Implementar orquestração dirigida a eventos com disparo automático ao ingerir eventos associados.
 - [x] Demonstrar publicação e consumo ponta a ponta integrando Apache Kafka localmente.
 - [x] Roteamento para Dead Letter Queue (DLQ) em caso de esgotamento de retries.
+- [x] Elaborar ADR-004: Observabilidade com Métricas Prometheus, Distributed Tracing e Logs Estruturados.
+- [x] Implementar observabilidade ponta a ponta (Micrometer, Prometheus, OpenTelemetry Tracing, MDC, Health Checks customizados e painel web).
 
 ## 8. Referências Relevantes
 

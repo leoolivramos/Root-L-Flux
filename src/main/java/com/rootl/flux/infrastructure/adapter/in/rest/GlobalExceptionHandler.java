@@ -14,8 +14,10 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.rootl.flux.infrastructure.adapter.in.rest")
 public class GlobalExceptionHandler {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(EventValidationException.class)
     public ProblemDetail handleEventValidation(EventValidationException ex) {
@@ -74,6 +76,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGenericException(Exception ex) {
+        log.error("Exceção não tratada capturada no GlobalExceptionHandler: ", ex);
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro interno inesperado no processamento da solicitação");
         problem.setTitle("Erro Interno do Servidor");
         problem.setType(URI.create("urn:root-l-flux:erro:interno"));

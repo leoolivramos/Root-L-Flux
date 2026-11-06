@@ -83,4 +83,23 @@ class FlowExecutionOrchestratorTest {
 
         assertThrows(FlowNotFoundException.class, () -> orchestrator.execute("fluxo-inexistente", eventId));
     }
+
+    @Test
+    @DisplayName("Deve retornar todas as execuções com suas etapas vinculadas")
+    void shouldReturnAllExecutionsWithTheirSteps() {
+        EventId eventId = EventId.generate();
+        FlowExecution exec = FlowExecution.start("fluxo-pedidos", eventId);
+        StepExecution step = StepExecution.create(exec.getId(), "validar", 1);
+
+        when(flowExecutionRepositoryPort.findAll()).thenReturn(List.of(exec));
+        when(stepExecutionRepositoryPort.findByFlowExecutionId(exec.getId())).thenReturn(List.of(step));
+
+        List<FlowExecution> result = orchestrator.getAllExecutions();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("fluxo-pedidos", result.get(0).getFlowId());
+        assertEquals(1, result.get(0).getStepExecutions().size());
+        assertEquals("validar", result.get(0).getStepExecutions().get(0).getStepId());
+    }
 }

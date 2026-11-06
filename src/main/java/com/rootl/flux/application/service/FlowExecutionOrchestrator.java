@@ -95,6 +95,26 @@ public class FlowExecutionOrchestrator implements ExecuteFlowUseCase, QueryFlowE
     }
 
     @Override
+    public List<FlowExecution> getAllExecutions() {
+        return flowExecutionRepositoryPort.findAll().stream()
+                .map(exec -> {
+                    List<StepExecution> steps = stepExecutionRepositoryPort.findByFlowExecutionId(exec.getId());
+                    return new FlowExecution(
+                            exec.getId(),
+                            exec.getFlowId(),
+                            exec.getTriggerEventId(),
+                            exec.getStatus(),
+                            exec.getCreatedAt(),
+                            exec.getCompletedAt(),
+                            exec.getErrorMessage(),
+                            exec.getVersion(),
+                            steps
+                    );
+                })
+                .toList();
+    }
+
+    @Override
     public FlowExecution replay(String executionId) {
         Instant startTime = Instant.now();
         FlowExecution execution = getExecution(executionId)

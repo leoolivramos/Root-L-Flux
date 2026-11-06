@@ -12,7 +12,10 @@ def get(path):
         with urllib.request.urlopen(req) as resp:
             return resp.status, json.loads(resp.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode('utf-8'))
+        try:
+            return e.code, json.loads(e.read().decode('utf-8'))
+        except Exception:
+            return e.code, {}
     except Exception as e:
         return None, str(e)
 
